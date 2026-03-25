@@ -1,0 +1,28 @@
+{
+  "name": "instagram-analyzer",
+  "version": "4.0.0",
+  "private": true,
+  "dependencies": {
+    "node-fetch": "^2.7.0",
+    "form-data": "^4.0.0"
+  },
+  "engines": {
+    "node": "18.x"
+  }
+}
+```
+
+**4.** **"Commit changes"**
+
+---
+
+После этого пришли скриншот корня репо — должно быть вот так:
+```
+📁 api/
+   - get-reels.js
+   - transcribe-reels.js
+📁 public/
+   - index.html
+- package.json
+- vercel.json
+- README.md
