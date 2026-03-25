@@ -13,16 +13,3 @@
 ```
 
 **4.** **"Commit changes"**
-
----
-
-После этого пришли скриншот корня репо — должно быть вот так:
-```
-📁 api/
-   - get-reels.js
-   - transcribe-reels.js
-📁 public/
-   - index.html
-- package.json
-- vercel.json
-- README.md
