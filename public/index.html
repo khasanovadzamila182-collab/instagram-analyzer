@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Instagram Analyzer</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap');
+  :root {
+    --bg:#0a0a0a; --surface:#111; --border:#1e1e1e;
+    --accent:#e8ff47; --accent2:#ff6b35; --text:#f0f0f0;
+    --muted:#555; --success:#47ffb2; --purple:#a855f7;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;min-height:100vh;padding:40px 20px;}
+  .container{max-width:860px;margin:0 auto;}
+  header{margin-bottom:48px;border-bottom:1px solid var(--border);padding-bottom:32px;}
+  .label{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--accent);letter-spacing:.2em;text-transform:uppercase;margin-bottom:12px;}
+  h1{font-size:clamp(32px,6vw,52px);font-weight:800;line-height:1;letter-spacing:-.02em;}
+  h1 span{color:var(--accent);}
+  .subtitle{margin-top:12px;color:var(--muted);font-size:13px;font-family:'IBM Plex Mono',monospace;}
+  .nav-tabs{display:flex;gap:0;margin-bottom:24px;border:1px solid var(--border);border-radius:2px;overflow:hidden;}
+  .nav-tab{flex:1;background:transparent;border:none;color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:11px;padding:12px 16px;cursor:pointer;letter-spacing:.1em;text-transform:uppercase;transition:all .2s;border-right:1px solid var(--border);}
+  .nav-tab:last-child{border-right:none;}
+  .nav-tab.active{background:var(--accent);color:#000;font-weight:700;}
+  .nav-tab:hover:not(.active){color:var(--accent);}
+  .tab-content{display:none;}
+  .tab-content.active{display:block;animation:fadeIn .3s ease;}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:2px;padding:28px;margin-bottom:16px;}
+  .card-title{font-size:11px;font-family:'IBM Plex Mono',monospace;color:var(--muted);letter-spacing:.15em;text-transform:uppercase;margin-bottom:20px;}
+  input,select{background:var(--bg);border:1px solid var(--border);border-radius:2px;color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:13px;padding:12px 16px;width:100%;transition:border-color .2s;outline:none;}
+  input:focus,select:focus{border-color:var(--accent);}
+  input::placeholder{color:#333;}
+  select option{background:#111;}
+  .input-row{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end;}
+  .btn{display:block;background:var(--accent);color:#000;border:none;border-radius:2px;font-family:'Syne',sans-serif;font-size:14px;font-weight:800;padding:14px 24px;cursor:pointer;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;transition:background .15s;}
+  .btn:hover{background:#d4eb00;}
+  .btn:disabled{background:#222;color:#444;cursor:not-allowed;}
+  .btn-full{width:100%;margin-top:16px;font-size:16px;padding:18px 32px;}
+  .btn-outline{background:transparent;border:1px solid var(--border);color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:11px;padding:10px 18px;cursor:pointer;border-radius:2px;transition:all .2s;}
+  .btn-outline:hover{border-color:var(--accent);color:var(--accent);}
+  .count-select{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;}
+  .count-btn{background:var(--bg);border:1px solid var(--border);color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:11px;padding:8px 16px;cursor:pointer;border-radius:2px;transition:all .2s;}
+  .count-btn.active{border-color:var(--accent);color:var(--accent);background:#111a00;}
+  .count-btn:hover{border-color:var(--accent);color:var(--accent);}
+
+  /* Status box */
+  #statusBox,#ytStatusBox{display:none;background:var(--surface);border:1px solid var(--border);border-radius:2px;padding:24px 28px;margin-bottom:16px;}
+  #statusBox.active,#ytStatusBox.active{display:block;}
+  .step{display:flex;align-items:center;gap:10px;padding:5px 0;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);}
+  .step.done{color:var(--success);}
+  .step.running{color:var(--accent);}
+  .step.err{color:var(--accent2);}
+  .dot{width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0;}
+  .spin{width:12px;height:12px;border:1.5px solid var(--accent);border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite;flex-shrink:0;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .progress-bar{width:100%;height:3px;background:var(--border);border-radius:2px;margin-top:12px;overflow:hidden;}
+  .progress-fill{height:100%;background:var(--accent);width:0%;transition:width .5s ease;}
+  .error-box{display:none;background:#1a0800;border:1px solid var(--accent2);border-radius:2px;padding:16px 20px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--accent2);margin-bottom:16px;line-height:1.7;}
+  .error-box.visible{display:block;}
+
+  /* Reels picker */
+  #reelsPicker{display:none;background:var(--surface);border:1px solid var(--accent);border-radius:2px;padding:24px;margin-bottom:16px;}
+  #reelsPicker.visible{display:block;animation:fadeIn .3s ease;}
+  .picker-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:12px;}
+  .picker-title{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--accent);letter-spacing:.15em;text-transform:uppercase;}
+  .picker-actions{display:flex;gap:8px;}
+  .reels-grid{display:grid;gap:8px;max-height:400px;overflow-y:auto;}
+  .reel-item{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;background:var(--bg);border:1px solid var(--border);padding:12px 16px;border-radius:2px;cursor:pointer;transition:all .2s;}
+  .reel-item:hover{border-color:#333;}
+  .reel-item.selected{border-color:var(--accent);background:#111a00;}
+  .reel-check{width:16px;height:16px;border:1.5px solid var(--muted);border-radius:2px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s;}
+  .reel-item.selected .reel-check{background:var(--accent);border-color:var(--accent);color:#000;}
+  .reel-info{}
+  .reel-caption{font-size:12px;color:#ccc;line-height:1.4;max-width:500px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .reel-stats{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);margin-top:3px;}
+  .reel-date{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);text-align:right;white-space:nowrap;}
+  .picker-footer{margin-top:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;}
+  .selected-count{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--accent);}
+
+  /* Report */
+  #igReport,#ytReport{display:none;}
+  #igReport.visible,#ytReport.visible{display:block;animation:fadeIn .4s ease;}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .report-top{background:var(--surface);border:1px solid var(--accent);border-radius:2px;padding:28px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:flex-start;gap:20px;flex-wrap:wrap;}
+  .report-username{font-size:32px;font-weight:800;letter-spacing:-.02em;}
+  .report-username span{color:var(--accent);}
+  .report-meta{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);line-height:2;text-align:right;}
+  .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:16px;}
+  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:2px;padding:18px;}
+  .stat-val{font-size:22px;font-weight:800;color:var(--accent);letter-spacing:-.02em;}
+  .stat-lbl{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);margin-top:4px;text-transform:uppercase;letter-spacing:.1em;}
+  .section{background:var(--surface);border:1px solid var(--border);border-radius:2px;padding:28px;margin-bottom:16px;}
+  .section-title{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);font-family:'IBM Plex Mono',monospace;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--border);}
+  .section-body{font-family:'IBM Plex Mono',monospace;font-size:13px;line-height:1.9;color:#ccc;white-space:pre-wrap;}
+  .btn-row{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;}
+  .transcript-section{background:#0d1a00;border:1px solid #2a3a00;border-radius:2px;padding:28px;margin-bottom:16px;}
+  .transcript-item{border-bottom:1px solid #1a2a00;padding:16px 0;}
+  .transcript-item:last-child{border-bottom:none;}
+  .transcript-meta{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:8px;}
+  .transcript-text{font-family:'IBM Plex Mono',monospace;font-size:12px;line-height:1.8;color:#aaccaa;}
+  .transcript-status{font-family:'IBM Plex Mono',monospace;font-size:10px;padding:3px 8px;border-radius:2px;display:inline-block;margin-top:4px;}
+  .transcript-status.done{background:#0a2010;color:var(--success);border:1px solid #1a4020;}
+  .transcript-status.fail{background:#200a00;color:var(--accent2);border:1px solid #401a00;}
+
+  /* YT specific */
+  .yt-url-hint{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);margin-top:8px;line-height:1.6;}
+  .lang-badges{display:flex;gap:8px;margin-top:12px;}
+  .lang-badge{background:#111a00;border:1px solid #2a3a00;color:var(--success);font-family:'IBM Plex Mono',monospace;font-size:10px;padding:4px 10px;border-radius:2px;}
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="label">// аналитический инструмент v4.0</div>
+    <h1>INSTAGRAM<br><span>ANALYZER</span></h1>
+    <div class="subtitle">→ профиль · посты · транскрипции reels · глубокий анализ · отчёт</div>
+  </header>
+
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="switchTab('ig')">📸 Instagram Анализ</button>
+    <button class="nav-tab" onclick="switchTab('yt')">▶ YouTube Транскрипция</button>
+  </div>
+
+  <!-- ===== INSTAGRAM TAB ===== -->
+  <div id="tab-ig" class="tab-content active">
+    <div class="card">
+      <div class="card-title">// введи username Instagram</div>
+      <div class="input-row">
+        <input type="text" id="igUsername" placeholder="username (без @)" />
+        <button class="btn" id="igLoadBtn" onclick="loadReels()">▶ ЗАГРУЗИТЬ</button>
+      </div>
+      <div class="label" style="margin-top:16px;margin-bottom:8px;">// количество роликов для анализа</div>
+      <div class="count-select">
+        <button class="count-btn" onclick="setCount(10,this)">10 роликов</button>
+        <button class="count-btn active" onclick="setCount(20,this)">20 роликов</button>
+        <button class="count-btn" onclick="setCount(30,this)">30 роликов</button>
+        <button class="count-btn" onclick="setCount(50,this)">50 роликов</button>
+      </div>
+    </div>
+
+    <div id="igError" class="error-box"></div>
+
+    <!-- Reels picker -->
+    <div id="reelsPicker">
+      <div class="picker-header">
+        <div class="picker-title">// выбери ролики для транскрибации</div>
+        <div class="picker-actions">
+          <button class="btn-outline" onclick="selectAll()">Выбрать все</button>
+          <button class="btn-outline" onclick="selectTop(15)">Топ 15</button>
+          <button class="btn-outline" onclick="selectNone()">Сбросить</button>
+        </div>
+      </div>
+      <div class="reels-grid" id="reelsGrid"></div>
+      <div class="picker-footer">
+        <div class="selected-count" id="selectedCount">Выбрано: 0 роликов</div>
+        <button class="btn" id="transcribeBtn" onclick="startIgAnalysis()">▶ ТРАНСКРИБИРОВАТЬ И АНАЛИЗИРОВАТЬ</button>
+      </div>
+    </div>
+
+    <div id="igStatusBox" class="active" style="display:none;">
+      <div class="step" id="igs1"><div class="dot"></div><span>Ожидание...</span></div>
+      <div class="step" id="igs2"><div class="dot"></div><span>Ожидание...</span></div>
+      <div class="step" id="igs3"><div class="dot"></div><span>Ожидание...</span></div>
+      <div class="step" id="igs4"><div class="dot"></div><span>Ожидание...</span></div>
+      <div class="progress-bar"><div class="progress-fill" id="igProgress"></div></div>
+    </div>
+
+    <div id="igReport">
+      <div class="report-top">
+        <div>
+          <div class="label">// отчёт готов</div>
+          <div class="report-username"><span>@</span><span id="igRUsername"></span></div>
+        </div>
+        <div class="report-meta" id="igRMeta"></div>
+      </div>
+      <div class="stats-grid" id="igStatsGrid"></div>
+      <div class="section">
+        <div class="section-title">// анализ контента · claude ai</div>
+        <div class="section-body" id="igRAnalysis"></div>
+        <div class="btn-row">
+          <button class="btn-outline" onclick="copyReport('ig')">⎘ копировать отчёт</button>
+          <button class="btn" onclick="downloadReport('ig')">↓ скачать отчёт .txt</button>
+          <button class="btn" onclick="downloadTranscripts('ig')">↓ скачать транскрипции .txt</button>
+        </div>
+      </div>
+      <div class="transcript-section" id="igTranscriptSection" style="display:none;">
+        <div class="section-title">// транскрипции reels</div>
+        <div id="igTranscriptList"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== YOUTUBE TAB ===== -->
+  <div id="tab-yt" class="tab-content">
+    <div class="card">
+      <div class="card-title">// транскрибация YouTube видео</div>
+      <input type="text" id="ytUrl" placeholder="https://youtube.com/watch?v=... или канал" />
+      <div class="yt-url-hint">
+        Поддерживается: ссылка на видео · ссылка на канал · @username канала<br>
+        Для канала — выбери количество последних роликов
+      </div>
+      <div class="label" style="margin-top:16px;margin-bottom:8px;">// язык аудио</div>
+      <div class="lang-badges">
+        <div class="lang-badge">🇺🇿 Узбекский</div>
+        <div class="lang-badge">🇷🇺 Русский</div>
+        <div class="lang-badge">🌐 Авто-определение</div>
+      </div>
+      <div class="label" style="margin-top:16px;margin-bottom:8px;">// количество видео (для канала)</div>
+      <div class="count-select">
+        <button class="count-btn" onclick="setYtCount(1,this)">1 видео</button>
+        <button class="count-btn active" onclick="setYtCount(5,this)">5 видео</button>
+        <button class="count-btn" onclick="setYtCount(15,this)">15 видео</button>
+        <button class="count-btn" onclick="setYtCount(30,this)">30 видео</button>
+      </div>
+      <button class="btn btn-full" id="ytBtn" onclick="startYt()">▶ ТРАНСКРИБИРОВАТЬ</button>
+    </div>
+
+    <div id="ytError" class="error-box"></div>
+
+    <div id="ytStatusBox">
+      <div class="step" id="yts1"><div class="dot"></div><span>Ожидание...</span></div>
+      <div class="step" id="yts2"><div class="dot"></div><span>Ожидание...</span></div>
+      <div class="step" id="yts3"><div class="dot"></div><span>Ожидание...</span></div>
+      <div class="progress-bar"><div class="progress-fill" id="ytProgress"></div></div>
+    </div>
+
+    <div id="ytReport">
+      <div class="section">
+        <div class="section-title">// транскрипции видео · claude ai</div>
+        <div class="section-body" id="ytAnalysis"></div>
+        <div class="btn-row">
+          <button class="btn-outline" onclick="copyReport('yt')">⎘ копировать</button>
+          <button class="btn" onclick="downloadReport('yt')">↓ скачать .txt</button>
+        </div>
+      </div>
+      <div class="transcript-section" id="ytTranscriptSection">
+        <div class="section-title">// транскрипции</div>
+        <div id="ytTranscriptList"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+var selectedCount = 20;
+var ytCount = 5;
+var reelsData = [];
+var selectedReels = new Set();
+var reportData = {};
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab-content').forEach(function(el){ el.classList.remove('active'); });
+  document.querySelectorAll('.nav-tab').forEach(function(el){ el.classList.remove('active'); });
+  document.getElementById('tab-' + tab).classList.add('active');
+  event.target.classList.add('active');
+}
+
+function setCount(n, el) {
+  selectedCount = n;
+  document.querySelectorAll('#tab-ig .count-select .count-btn').forEach(function(b){ b.classList.remove('active'); });
+  el.classList.add('active');
+}
+function setYtCount(n, el) {
+  ytCount = n;
+  document.querySelectorAll('#tab-yt .count-select .count-btn').forEach(function(b){ b.classList.remove('active'); });
+  el.classList.add('active');
+}
+
+function setStep(id, state, text) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  el.className = 'step ' + state;
+  el.innerHTML = (state === 'running' ? '<div class="spin"></div>' : '<div class="dot"></div>') + '<span>' + text + '</span>';
+}
+function setProgress(id, pct) {
+  var el = document.getElementById(id);
+  if (el) el.style.width = pct + '%';
+}
+function showError(boxId, msg) {
+  var el = document.getElementById(boxId);
+  el.innerHTML = '✗ ОШИБКА: ' + msg;
+  el.className = 'error-box visible';
+}
+
+// ===== INSTAGRAM =====
+
+async function loadReels() {
+  var username = document.getElementById('igUsername').value.trim().replace('@','');
+  if (!username) { alert('Введи username!'); return; }
+  document.getElementById('igError').className = 'error-box';
+  document.getElementById('igLoadBtn').disabled = true;
+  document.getElementById('igLoadBtn').textContent = '...';
+  document.getElementById('reelsPicker').className = '';
+
+  try {
+    var res = await fetch('/api/get-reels', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ username: username, limit: selectedCount })
+    });
+    var data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || 'Ошибка загрузки');
+
+    reelsData = data.reels || [];
+    renderReelsPicker(reelsData);
+    document.getElementById('reelsPicker').className = 'visible';
+    selectAll();
+  } catch(e) {
+    showError('igError', e.message);
+  }
+
+  document.getElementById('igLoadBtn').disabled = false;
+  document.getElementById('igLoadBtn').textContent = '▶ ЗАГРУЗИТЬ';
+}
+
+function renderReelsPicker(reels) {
+  var grid = document.getElementById('reelsGrid');
+  grid.innerHTML = reels.map(function(r, i) {
+    var caption = r.caption || '(без описания)';
+    if (caption.length > 80) caption = caption.slice(0, 80) + '...';
+    var date = r.timestamp ? new Date(r.timestamp * 1000).toLocaleDateString('ru') : '—';
+    return '<div class="reel-item" id="reel-' + i + '" onclick="toggleReel(' + i + ')">' +
+      '<div class="reel-check" id="check-' + i + '">✓</div>' +
+      '<div class="reel-info">' +
+        '<div class="reel-caption">' + escHtml(caption) + '</div>' +
+        '<div class="reel-stats">❤️ ' + (r.likesCount || 0).toLocaleString('ru') + ' 💬 ' + (r.commentsCount || 0).toLocaleString('ru') + ' · ' + (r.videoViewCount ? '▶ ' + r.videoViewCount.toLocaleString('ru') : '') + '</div>' +
+      '</div>' +
+      '<div class="reel-date">' + date + '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function toggleReel(i) {
+  if (selectedReels.has(i)) {
+    selectedReels.delete(i);
+    document.getElementById('reel-' + i).classList.remove('selected');
+  } else {
+    selectedReels.add(i);
+    document.getElementById('reel-' + i).classList.add('selected');
+  }
+  updateSelectedCount();
+}
+
+function selectAll() {
+  reelsData.forEach(function(_, i) {
+    selectedReels.add(i);
+    var el = document.getElementById('reel-' + i);
+    if (el) el.classList.add('selected');
+  });
+  updateSelectedCount();
+}
+
+function selectTop(n) {
+  selectNone();
+  var sorted = reelsData.map(function(r, i){ return {i:i, likes: r.likesCount||0}; })
+    .sort(function(a,b){ return b.likes-a.likes; }).slice(0, n);
+  sorted.forEach(function(s) {
+    selectedReels.add(s.i);
+    var el = document.getElementById('reel-' + s.i);
+    if (el) el.classList.add('selected');
+  });
+  updateSelectedCount();
+}
+
+function selectNone() {
+  selectedReels.clear();
+  document.querySelectorAll('.reel-item').forEach(function(el){ el.classList.remove('selected'); });
+  updateSelectedCount();
+}
+
+function updateSelectedCount() {
+  document.getElementById('selectedCount').textContent = 'Выбрано: ' + selectedReels.size + ' роликов';
+}
+
+async function startIgAnalysis() {
+  var username = document.getElementById('igUsername').value.trim().replace('@','');
+  if (selectedReels.size === 0) { alert('Выбери хотя бы один ролик!'); return; }
+
+  var selected = Array.from(selectedReels).map(function(i){ return reelsData[i]; });
+
+  document.getElementById('igError').className = 'error-box';
+  document.getElementById('igReport').className = '';
+  document.getElementById('reelsPicker').className = '';
+  document.getElementById('transcribeBtn').disabled = true;
+  document.getElementById('igStatusBox').style.display = 'block';
+  setProgress('igProgress', 0);
+
+  setStep('igs1','running','Начинаем транскрибацию ' + selected.length + ' роликов...');
+  setStep('igs2','pending','Ожидание...');
+  setStep('igs3','pending','Ожидание...');
+  setStep('igs4','pending','Ожидание...');
+
+  try {
+    var res = await fetch('/api/transcribe-reels', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ username: username, reels: selected })
+    });
+
+    setStep('igs1','done','Задача отправлена ✓');
+    setStep('igs2','running','Скачиваем аудио и транскрибируем...');
+    setProgress('igProgress', 15);
+
+    var data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error);
+
+    setStep('igs2','done','Транскрибировано: ' + data.transcribedCount + '/' + selected.length + ' ✓');
+    setStep('igs3','running','Claude анализирует весь контент...');
+    setProgress('igProgress', 75);
+
+    // Небольшая задержка для анимации
+    await new Promise(function(r){ setTimeout(r, 500); });
+
+    setStep('igs3','done','Анализ завершён ✓');
+    setStep('igs4','done','Отчёт готов ✓');
+    setProgress('igProgress', 100);
+
+    renderIgReport(data);
+    reportData.ig = data;
+    document.getElementById('igReport').className = 'visible';
+    document.getElementById('igReport').scrollIntoView({behavior:'smooth'});
+
+  } catch(e) {
+    showError('igError', e.message);
+    setStep('igs1','err','✗ ' + e.message);
+  }
+
+  document.getElementById('transcribeBtn').disabled = false;
+}
+
+function renderIgReport(data) {
+  document.getElementById('igRUsername').textContent = data.username;
+  document.getElementById('igRMeta').innerHTML =
+    'Дата: ' + new Date().toLocaleDateString('ru') + '<br>' +
+    'Роликов выбрано: ' + data.totalSelected + '<br>' +
+    'Транскрибировано: ' + data.transcribedCount + '<br>' +
+    'Powered by Apify + Whisper + Claude';
+
+  var stats = [
+    {val: data.followers ? data.followers.toLocaleString('ru') : '—', lbl: 'Подписчики'},
+    {val: data.avgLikes ? data.avgLikes.toLocaleString('ru') : '—', lbl: 'Ср. лайков'},
+    {val: data.erRate ? data.erRate + '%' : '—', lbl: 'ER Rate'},
+    {val: data.transcribedCount + ' / ' + data.totalSelected, lbl: 'Транскрибировано'},
+  ];
+  document.getElementById('igStatsGrid').innerHTML = stats.map(function(s){
+    return '<div class="stat-card"><div class="stat-val">'+s.val+'</div><div class="stat-lbl">'+s.lbl+'</div></div>';
+  }).join('');
+
+  document.getElementById('igRAnalysis').textContent = data.analysis;
+
+  if (data.transcripts && data.transcripts.length > 0) {
+    document.getElementById('igTranscriptList').innerHTML = data.transcripts.map(function(t, i){
+      var statusCls = t.transcript && t.transcript !== '(недоступно)' ? 'done' : 'fail';
+      var statusTxt = statusCls === 'done' ? '✓ транскрибировано' : '✗ не удалось';
+      return '<div class="transcript-item">' +
+        '<div class="transcript-meta">REEL ' + (i+1) + ' · ' + t.date + ' · ❤️ ' + (t.likes||0).toLocaleString('ru') + ' 💬 ' + (t.comments||0).toLocaleString('ru') + '</div>' +
+        '<div class="transcript-meta" style="color:#556">' + escHtml(t.caption || '') + '</div>' +
+        '<span class="transcript-status ' + statusCls + '">' + statusTxt + '</span>' +
+        '<div class="transcript-text" style="margin-top:8px">' + escHtml(t.transcript || '(недоступно)') + '</div>' +
+      '</div>';
+    }).join('');
+    document.getElementById('igTranscriptSection').style.display = 'block';
+  }
+
+  // Сохраняем для скачивания
+  window._igUsername = data.username;
+  window._igReportText = buildReportText(data);
+  window._igTranscriptText = buildTranscriptText(data);
+}
+
+// ===== YOUTUBE =====
+
+async function startYt() {
+  var url = document.getElementById('ytUrl').value.trim();
+  if (!url) { alert('Введи ссылку!'); return; }
+
+  document.getElementById('ytError').className = 'error-box';
+  document.getElementById('ytReport').className = '';
+  document.getElementById('ytBtn').disabled = true;
+  document.getElementById('ytStatusBox').className = 'active';
+  setProgress('ytProgress', 0);
+
+  setStep('yts1','running','Получаем видео...');
+  setStep('yts2','pending','Ожидание...');
+  setStep('yts3','pending','Ожидание...');
+
+  try {
+    var res = await fetch('/api/transcribe-youtube', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ url: url, limit: ytCount })
+    });
+
+    setStep('yts1','done','Видео найдено ✓');
+    setStep('yts2','running','Транскрибируем аудио (узбекский / русский)...');
+    setProgress('ytProgress', 20);
+
+    var data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error);
+
+    setStep('yts2','done','Транскрибировано ✓');
+    setStep('yts3','running','Claude анализирует...');
+    setProgress('ytProgress', 80);
+
+    await new Promise(function(r){ setTimeout(r, 300); });
+    setStep('yts3','done','Готово ✓');
+    setProgress('ytProgress', 100);
+
+    renderYtReport(data);
+    reportData.yt = data;
+    document.getElementById('ytReport').className = 'visible';
+    document.getElementById('ytReport').scrollIntoView({behavior:'smooth'});
+
+  } catch(e) {
+    showError('ytError', e.message);
+    setStep('yts1','err','✗ ' + e.message);
+  }
+
+  document.getElementById('ytBtn').disabled = false;
+}
+
+function renderYtReport(data) {
+  document.getElementById('ytAnalysis').textContent = data.analysis || '(анализ недоступен)';
+
+  if (data.transcripts && data.transcripts.length > 0) {
+    document.getElementById('ytTranscriptList').innerHTML = data.transcripts.map(function(t, i){
+      var statusCls = t.transcript ? 'done' : 'fail';
+      return '<div class="transcript-item">' +
+        '<div class="transcript-meta">ВИДЕО ' + (i+1) + ' · ' + escHtml(t.title || '') + '</div>' +
+        '<span class="transcript-status ' + statusCls + '">' + (statusCls==='done'?'✓ транскрибировано':'✗ не удалось') + '</span>' +
+        '<div class="transcript-text" style="margin-top:8px">' + escHtml(t.transcript || '(недоступно)') + '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  window._ytReportText = (data.analysis || '') + '\n\n' +
+    (data.transcripts || []).map(function(t,i){
+      return '--- ВИДЕО ' + (i+1) + ' ---\n' + (t.title||'') + '\n\n' + (t.transcript||'');
+    }).join('\n\n');
+}
+
+// ===== UTILS =====
+
+function copyReport(type) {
+  var text = type === 'ig' ? window._igReportText : window._ytReportText;
+  navigator.clipboard.writeText(text || '').then(function(){
+    var msg = type === 'ig' ? 'ig' : 'yt';
+    // flash
+  });
+}
+
+function downloadReport(type) {
+  var text = type === 'ig' ? window._igReportText : window._ytReportText;
+  var name = type === 'ig' ? 'report_' + (window._igUsername||'ig') + '.txt' : 'yt_report.txt';
+  dlFile(text || '', name);
+}
+
+function downloadTranscripts(type) {
+  var text = type === 'ig' ? window._igTranscriptText : window._ytReportText;
+  dlFile(text || '', 'transcripts_' + (window._igUsername||'ig') + '.txt');
+}
+
+function dlFile(text, name) {
+  var blob = new Blob([text], {type:'text/plain;charset=utf-8'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = name; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function buildReportText(data) {
+  return '@' + data.username + ' — Instagram Reels Report\n' + '='.repeat(60) + '\n' +
+    'Подписчики: ' + (data.followers||'—') + ' | ER: ' + (data.erRate||'—') + '%\n' +
+    'Роликов: ' + data.totalSelected + ' | Транскрибировано: ' + data.transcribedCount + '\n' +
+    'Дата: ' + new Date().toLocaleDateString('ru') + '\n\n' +
+    (data.analysis || '');
+}
+
+function buildTranscriptText(data) {
+  var text = 'ТРАНСКРИПЦИИ REELS @' + data.username + '\n' + '='.repeat(60) + '\n';
+  (data.transcripts || []).forEach(function(t, i) {
+    text += '\n--- REEL ' + (i+1) + ' ---\n';
+    text += 'Дата: ' + t.date + ' | ❤️ ' + (t.likes||0) + ' 💬 ' + (t.comments||0) + '\n';
+    text += 'Описание: ' + (t.caption||'') + '\n\n';
+    text += (t.transcript||'(недоступно)') + '\n';
+  });
+  return text;
+}
+
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+</script>
+</body>
+</html>
