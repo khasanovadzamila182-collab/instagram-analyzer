@@ -48,7 +48,6 @@ export default async function handler(req, res) {
 }
 
 async function transcribeWithAssemblyAI(audioUrl, apiKey) {
-  // Используем новый API v3
   const submitRes = await fetch('https://api.assemblyai.com/v2/transcript', {
     method: 'POST',
     headers: { 
@@ -57,7 +56,7 @@ async function transcribeWithAssemblyAI(audioUrl, apiKey) {
     },
     body: JSON.stringify({
       audio_url: audioUrl,
-      speech_model: 'universal',
+      speech_models: ['universal-2'],
       language_detection: true,
     }),
   });
