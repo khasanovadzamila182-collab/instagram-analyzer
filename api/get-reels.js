@@ -15,12 +15,13 @@ export default async function handler(req, res) {
     // Запускаем Apify actor для получения Reels
     // Actor: apify/instagram-reel-scraper
     const startRes = await fetch(
-      `https://api.apify.com/v2/acts/apify~instagram-reel-scraper/runs?token=${APIFY_TOKEN}`,
+      `https://api.apify.com/v2/acts/apify~instagram-scraper/runs?token=${APIFY_TOKEN}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          usernames: [username],
+          directUrls: [`https://www.instagram.com/${username}/`],
+          resultsType: 'posts',
           resultsLimit: limit,
           addParentData: false,
         }),
@@ -42,7 +43,7 @@ export default async function handler(req, res) {
     while (status === 'RUNNING' || status === 'READY' || status === 'ABORTING') {
       if (attempts++ > 36) throw new Error('Apify timeout — попробуй ещё раз');
       await sleep(5000);
-      const statusRes = await fetch(`https://api.apify.com/v2/acts/apify~instagram-reel-scraper/runs/${runId}?token=${APIFY_TOKEN}`);
+      const statusRes = await fetch(`https://api.apify.com/v2/acts/apify~instagram-scraper/runs/${runId}?token=${APIFY_TOKEN}`);
       const statusData = await statusRes.json();
       status = statusData.data.status;
     }
