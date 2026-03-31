@@ -72,7 +72,7 @@ async function transcribeWithWhisper(videoUrl, apiKey) {
   // Собираем multipart вручную
   const header = '--' + boundary + '\r\nContent-Disposition: form-data; name="file"; filename="audio.mp4"\r\nContent-Type: video/mp4\r\n\r\n';
   const modelPart = '\r\n--' + boundary + '\r\nContent-Disposition: form-data; name="model"\r\n\r\nwhisper-1';
-  const langPart = '\r\n--' + boundary + '\r\nContent-Disposition: form-data; name="language"\r\n\r\nuz';
+  const langPart = '';
   const promptPart = '\r\n--' + boundary + '\r\nContent-Disposition: form-data; name="prompt"\r\n\r\nBu uzbek tilidagi video. Aniq transkripsiya qiling.';
   const footer = '\r\n--' + boundary + '--\r\n';
 
