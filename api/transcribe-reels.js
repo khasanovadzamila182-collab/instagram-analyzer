@@ -57,7 +57,7 @@ async function transcribeWithAssemblyAI(audioUrl, apiKey) {
     body: JSON.stringify({
       audio_url: audioUrl,
       speech_models: ['universal-2'],
-      language_detection: true,
+      language_code: 'uz',
     }),
   });
 
